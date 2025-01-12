@@ -1,16 +1,17 @@
 # catalystassignment
 
-A new Flutter project.
+Project Title: Catalyst Assignment
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+This project aims to clone Airbnb Application.
+It includes features such as data management, API integration.
 
-A few resources to get you started if this is your first Flutter project:
+Key Features:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Data retrieval / CRUD operations for Users, Property and Bookings .
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Encountered Issues:
+Media Uploads:
+I encountered issues when attempting to save photos and videos to the API within the "Property Section."
+I implemented Sending the photo url to the "Property" class using the post method.
+However, I encountered the api doesn't take the images links and return null.
