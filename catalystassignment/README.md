@@ -8,7 +8,7 @@ It includes features such as data management, API integration.
 
 Key Features:
 
-Data retrieval/ "CRUD operations for Users, Property and Bookings .
+Data retrieval / CRUD operations for Users, Property and Bookings .
 
 Encountered Issues:
 Media Uploads:
