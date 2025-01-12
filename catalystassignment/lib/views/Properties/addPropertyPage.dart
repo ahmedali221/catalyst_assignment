@@ -1,8 +1,9 @@
-import 'dart:convert'; // For base64 encoding
-import 'dart:io'; // For File operations
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:img_picker/img_picker.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../controllers/propertyController.dart';
 import '../../controllers/userController.dart';
 import '../../models/property.dart';
@@ -20,14 +21,15 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _locationController = TextEditingController();
-  final _numberOfImagesController = TextEditingController();
+  final _numberOfImagesController = TextEditingController(); // New controller
   User? _selectedUser;
-  List<File> _selectedImages = [];
-  bool _isUploading = false;
+  List<File> _selectedImages = []; // List to store selected images
+  bool _isUploading = false; // To track if the form is being submitted
 
   @override
   void initState() {
     super.initState();
+    // Fetch users when the form is initialized
     ref.read(userControllerProvider.notifier).fetchUsers();
   }
 
@@ -37,11 +39,11 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
     _descriptionController.dispose();
     _priceController.dispose();
     _locationController.dispose();
-    _numberOfImagesController.dispose();
+    _numberOfImagesController.dispose(); // Dispose the new controller
     super.dispose();
   }
 
-  // Function to pick images
+  // Function to pick images based on the number specified by the user
   Future<void> _pickImages() async {
     final numberOfImages = int.tryParse(_numberOfImagesController.text);
     if (numberOfImages == null || numberOfImages <= 0) {
@@ -67,18 +69,6 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
     }
   }
 
-  // Function to convert images to base64 strings
-  Future<List<String>> _convertImagesToBase64(List<File> images) async {
-    List<String> base64Images = [];
-    for (var image in images) {
-      final bytes = await image.readAsBytes();
-      final base64String = base64Encode(bytes);
-      base64Images.add(base64String);
-    }
-    return base64Images;
-  }
-
-  // Function to submit the form
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedUser == null) {
@@ -96,13 +86,11 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
       }
 
       setState(() {
-        _isUploading = true;
+        _isUploading = true; // Start uploading
       });
 
       try {
-        // Convert images to base64 strings
-        final base64Images = await _convertImagesToBase64(_selectedImages);
-
+        // Create the new property
         final newProperty = Property(
           id: 0,
           userId: _selectedUser!.id,
@@ -110,7 +98,8 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
           description: _descriptionController.text,
           price: _priceController.text,
           location: _locationController.text,
-          images: base64Images, // Send base64 strings instead of File objects
+          images: [], // Images will be handled by the service
+          video: null, // Optional video field
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
           user: _selectedUser,
@@ -130,8 +119,9 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.pop(context); // Close the dialog
+                  // Navigator.popUntil(context,
+                  //     (route) => route.isFirst); // Navigate to the parent page
                 },
                 child: const Text('OK'),
               ),
@@ -144,7 +134,7 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
         );
       } finally {
         setState(() {
-          _isUploading = false;
+          _isUploading = false; // Stop uploading
         });
       }
     }
@@ -157,6 +147,7 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
 
+    // Access the list of users from the controller
     final users = ref.watch(userControllerProvider);
 
     return Scaffold(
@@ -166,7 +157,9 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: isPortrait ? screenWidth * 0.05 : screenHeight * 0.04,
+            fontSize: isPortrait
+                ? screenWidth * 0.05
+                : screenHeight * 0.04, // Dynamic font size
           ),
         ),
         centerTitle: true,
@@ -181,6 +174,7 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
+              spacing: 10,
               children: [
                 // User Dropdown
                 DropdownButtonFormField<User>(
@@ -297,6 +291,7 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
+                    // Image Picker Button
                     ElevatedButton(
                       onPressed: _pickImages,
                       style: ElevatedButton.styleFrom(
@@ -323,21 +318,24 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
+                    // Display Selected Images
                     if (_selectedImages.isNotEmpty)
                       GridView.builder(
                         shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                        physics:
+                            const NeverScrollableScrollPhysics(), // Disable scrolling
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 1,
+                          crossAxisCount: 3, // Number of images per row
+                          crossAxisSpacing: 10, // Spacing between columns
+                          mainAxisSpacing: 10, // Spacing between rows
+                          childAspectRatio: 1, // Square images
                         ),
                         itemCount: _selectedImages.length,
                         itemBuilder: (context, index) {
                           return Stack(
                             children: [
+                              // Display Image
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: Image.file(
@@ -347,13 +345,15 @@ class _AddPropertyPageState extends ConsumerState<AddPropertyPage> {
                                   fit: BoxFit.cover,
                                 ),
                               ),
+                              // Remove Image Button
                               Positioned(
                                 top: 5,
                                 right: 5,
                                 child: GestureDetector(
                                   onTap: () {
                                     setState(() {
-                                      _selectedImages.removeAt(index);
+                                      _selectedImages
+                                          .removeAt(index); // Remove the image
                                     });
                                   },
                                   child: Container(

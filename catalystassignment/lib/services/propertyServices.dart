@@ -23,47 +23,38 @@ class PropertyService {
     }
   }
 
-  Future<void> addProperty(Property property, List<File> images) async {
+  Future<void> addProperty(Property property, {List<File>? imageFiles}) async {
     try {
       final request = http.MultipartRequest('POST', Uri.parse(propertiesUrl));
 
+      // Add property fields to the request
       request.fields['user_id'] = property.userId.toString();
       request.fields['name'] = property.name;
       request.fields['description'] = property.description!;
       request.fields['price'] = property.price;
       request.fields['location'] = property.location;
 
-      List<String> imageUrls = [];
-      for (var i = 0; i < images.length; i++) {
-        var filename = '${DateTime.now().millisecondsSinceEpoch}_$i.png';
-        var imageUrl = 'property_images/$filename';
-        print('Generated Image URL: $imageUrl');
-        imageUrls.add(imageUrl);
-
-        // Add the image file to the request
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'images', // Field name for images
-            images[i].path,
-            filename: filename,
-          ),
-        );
+      // Add image files to the request
+      if (imageFiles != null) {
+        for (var imageFile in imageFiles) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'images', // This should match the field name expected by your backend
+              imageFile.path,
+            ),
+          );
+        }
       }
 
-      final encodedImageUrls = imageUrls
-          .map((url) => '"${url.replaceAll('/', '\\/')}"')
-          .toList()
-          .toString();
-      print('Encoded Image URLs: $encodedImageUrls');
+      // Send the property request
+      final propertyStreamedResponse = await request.send();
 
-      request.fields['images'] = encodedImageUrls;
-
-      final response = await request.send();
-
-      if (response.statusCode == 201) {
+      // Check the property request response
+      if (propertyStreamedResponse.statusCode == 201) {
         print('Property added successfully');
       } else {
-        final responseBody = await response.stream.bytesToString();
+        final responseBody =
+            await propertyStreamedResponse.stream.bytesToString();
         throw Exception('Failed to add property: $responseBody');
       }
     } catch (e) {

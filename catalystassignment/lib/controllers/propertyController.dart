@@ -26,9 +26,11 @@ class PropertyController extends StateNotifier<List<Property>> {
   // Add a new property with images
   Future<void> addProperty(Property property, List<File> images) async {
     try {
-      await _propertyService.addProperty(
-          property, images); // Call the service method
-      state = [...state, property]; // Add the new property to the state
+      // Call the service method and pass the property and images
+      await _propertyService.addProperty(property, imageFiles: images);
+
+      // Add the new property to the state
+      state = [...state, property];
     } catch (e) {
       print('Error adding property: $e');
       rethrow; // Rethrow the error to handle it in the UI
